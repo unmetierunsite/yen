@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and daily history
 """
 
 import requests
 from datetime import datetime
 import json
 import os
+import sys
 
 CACHE_FILE = 'exchange_rate_cache.json'
+HISTORY_FILE = 'exchange_rate_history.json'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -35,6 +37,7 @@ def get_eur_jpy_rate(use_cache=True):
 
                     if rate:
                         save_cache(rate)
+                        save_history(rate)
                         display_rate(rate)
                         return rate
             except Exception:
@@ -96,5 +99,67 @@ def load_cache():
     return None
 
 
+def save_history(rate):
+    """Save rate to daily history file"""
+    try:
+        history = load_history()
+        today = datetime.now().strftime('%Y-%m-%d')
+
+        history[today] = {
+            'rate': rate,
+            'timestamp': datetime.now().isoformat()
+        }
+
+        with open(HISTORY_FILE, 'w') as f:
+            json.dump(history, f, indent=2)
+    except Exception:
+        pass
+
+
+def load_history():
+    """Load history from file"""
+    try:
+        if os.path.exists(HISTORY_FILE):
+            with open(HISTORY_FILE, 'r') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def display_history(days=None):
+    """Display historical exchange rates"""
+    history = load_history()
+
+    if not history:
+        print("Aucun historique disponible.")
+        return
+
+    # Sort by date
+    sorted_dates = sorted(history.keys(), reverse=True)
+
+    if days:
+        sorted_dates = sorted_dates[:days]
+
+    print(f"\n{'='*60}")
+    print(f"Historique des taux EUR/JPY ({len(sorted_dates)} jours)")
+    print(f"{'='*60}")
+
+    for date in sorted_dates:
+        rate = history[date]['rate']
+        print(f"{date}: 1 EUR = {rate:.2f} JPY")
+
+    print(f"{'='*60}\n")
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '--history':
+            days = int(sys.argv[2]) if len(sys.argv) > 2 else None
+            display_history(days)
+        elif sys.argv[1] == '--help':
+            print("Usage:")
+            print("  python exchange_rate.py          # Afficher le taux actuel")
+            print("  python exchange_rate.py --history [N]  # Afficher l'historique (derniers N jours)")
+    else:
+        get_eur_jpy_rate()
