@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and daily history
 """
 
 import requests
 from datetime import datetime
 import json
 import os
+import sys
 
 CACHE_FILE = 'exchange_rate_cache.json'
+HISTORY_FILE = 'exchange_rate_history.json'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
-def get_eur_jpy_rate(use_cache=True):
+def get_eur_jpy_rate(use_cache=True, save_history=True):
     """Fetch current EUR/JPY exchange rate from an API"""
     try:
         # Try multiple APIs for redundancy
@@ -35,6 +37,8 @@ def get_eur_jpy_rate(use_cache=True):
 
                     if rate:
                         save_cache(rate)
+                        if save_history:
+                            save_to_history(rate)
                         display_rate(rate)
                         return rate
             except Exception:
@@ -48,6 +52,8 @@ def get_eur_jpy_rate(use_cache=True):
                 print("⚠️  Données en cache (connexion API échouée)")
                 print(f"{'='*50}")
                 display_rate(cached_rate)
+                if save_history:
+                    save_to_history(cached_rate)
                 return cached_rate
 
         # Last resort: use fallback
@@ -55,6 +61,8 @@ def get_eur_jpy_rate(use_cache=True):
         print("⚠️  Taux de change approximatif (valeur par défaut)")
         print(f"{'='*50}")
         display_rate(FALLBACK_RATE)
+        if save_history:
+            save_to_history(FALLBACK_RATE)
         return FALLBACK_RATE
 
     except Exception as e:
@@ -96,5 +104,92 @@ def load_cache():
     return None
 
 
+def save_to_history(rate):
+    """Save rate to daily history file"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        history = load_history()
+
+        if not history:
+            history = {}
+
+        # Only save once per day
+        if today not in history:
+            history[today] = {
+                'rate': rate,
+                'timestamp': datetime.now().isoformat()
+            }
+            with open(HISTORY_FILE, 'w') as f:
+                json.dump(history, f, indent=2)
+    except Exception:
+        pass
+
+
+def load_history():
+    """Load rate history from file"""
+    try:
+        if os.path.exists(HISTORY_FILE):
+            with open(HISTORY_FILE, 'r') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return None
+
+
+def display_history():
+    """Display the exchange rate history"""
+    history = load_history()
+
+    if not history:
+        print("Aucun historique disponible.")
+        return
+
+    print(f"\n{'='*60}")
+    print("Historique des taux de change EUR/JPY")
+    print(f"{'='*60}")
+    print(f"{'Date':<12} | {'Taux':<10} | {'1 EUR =':<15}")
+    print(f"{'-'*60}")
+
+    for date in sorted(history.keys()):
+        data = history[date]
+        rate = data['rate']
+        print(f"{date} | {rate:>8.2f} | {rate:.2f} JPY")
+
+    print(f"{'='*60}\n")
+
+
+def display_stats():
+    """Display statistics about the exchange rate"""
+    history = load_history()
+
+    if not history or len(history) < 2:
+        print("Pas assez de données pour calculer les statistiques.")
+        return
+
+    rates = [data['rate'] for data in history.values()]
+
+    print(f"\n{'='*60}")
+    print("Statistiques des taux de change EUR/JPY")
+    print(f"{'='*60}")
+    print(f"Nombre de jours suivis: {len(rates)}")
+    print(f"Taux maximum: {max(rates):.2f} JPY")
+    print(f"Taux minimum: {min(rates):.2f} JPY")
+    print(f"Taux moyen: {sum(rates)/len(rates):.2f} JPY")
+    print(f"Variation: {max(rates) - min(rates):.2f} JPY")
+    print(f"{'='*60}\n")
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    if len(sys.argv) > 1:
+        if sys.argv[1] == 'history':
+            display_history()
+        elif sys.argv[1] == 'stats':
+            display_stats()
+        else:
+            print("Usage: python exchange_rate.py [command]")
+            print("Commands:")
+            print("  (no command) - Show current rate and save to history")
+            print("  history     - Display exchange rate history")
+            print("  stats       - Display statistics")
+    else:
+        get_eur_jpy_rate()
