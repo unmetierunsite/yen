@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and daily history
 """
 
 import requests
 from datetime import datetime
 import json
 import os
+import sys
 
 CACHE_FILE = 'exchange_rate_cache.json'
+HISTORY_FILE = 'exchange_rate_history.json'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -35,6 +37,7 @@ def get_eur_jpy_rate(use_cache=True):
 
                     if rate:
                         save_cache(rate)
+                        save_daily_history(rate)
                         display_rate(rate)
                         return rate
             except Exception:
@@ -96,5 +99,70 @@ def load_cache():
     return None
 
 
+def save_daily_history(rate):
+    """Save daily rate to history file"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+
+        history = {}
+        if os.path.exists(HISTORY_FILE):
+            with open(HISTORY_FILE, 'r') as f:
+                history = json.load(f)
+
+        history[today] = {
+            'rate': rate,
+            'timestamp': datetime.now().isoformat()
+        }
+
+        with open(HISTORY_FILE, 'w') as f:
+            json.dump(history, f, indent=2)
+    except Exception:
+        pass
+
+
+def load_history():
+    """Load all historical rates"""
+    try:
+        if os.path.exists(HISTORY_FILE):
+            with open(HISTORY_FILE, 'r') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def display_history(days=30):
+    """Display historical rates"""
+    history = load_history()
+
+    if not history:
+        print("Aucune donnée historique disponible")
+        return
+
+    sorted_dates = sorted(history.keys(), reverse=True)[:days]
+
+    print(f"\n{'='*50}")
+    print(f"Historique EUR/JPY (derniers {min(len(sorted_dates), days)} jours)")
+    print(f"{'='*50}")
+
+    rates = [history[date]['rate'] for date in sorted_dates]
+
+    if rates:
+        print(f"Taux minimum: {min(rates):.2f} JPY")
+        print(f"Taux maximum: {max(rates):.2f} JPY")
+        print(f"Taux moyen: {sum(rates)/len(rates):.2f} JPY")
+        print(f"{'='*50}\n")
+
+    for date in reversed(sorted_dates):
+        rate = history[date]['rate']
+        print(f"{date}: 1 EUR = {rate:.2f} JPY")
+
+    print(f"{'='*50}\n")
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    if len(sys.argv) > 1 and sys.argv[1] == '--history':
+        days = int(sys.argv[2]) if len(sys.argv) > 2 else 30
+        display_history(days)
+    else:
+        get_eur_jpy_rate()
