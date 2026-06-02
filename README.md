@@ -1,6 +1,6 @@
 # EUR/JPY Exchange Rate Tracker
 
-Un script simple qui affiche le taux de change actuel entre l'Euro et le Yen Japonais.
+Un script pour tracker le taux de change quotidien entre l'Euro et le Yen Japonais avec historique.
 
 ## Installation
 
@@ -11,18 +11,26 @@ pip install -r requirements.txt
 
 ## Utilisation
 
-Exécutez le script :
+### Afficher le taux actuel
 ```bash
 python exchange_rate.py
 ```
 
-## Output
+### Afficher l'historique quotidien
+```bash
+python exchange_rate.py --history
+```
 
-Le script affiche :
-- La date et l'heure actuelles
-- Le taux de change EUR/JPY (combien de yen vous obtenez pour 1 euro)
+## Fonctionnalités
 
-Exemple :
+- **Taux en temps réel** : Récupère le taux EUR/JPY actuel via API
+- **Historique** : Enregistre automatiquement chaque taux quotidien
+- **Statistiques** : Affiche les statistiques (moyenne, min, max, tendance)
+- **Cache** : Fallback en cache en cas d'indisponibilité de l'API
+- **Redondance** : Utilise plusieurs APIs pour fiabilité
+
+## Output du taux actuel
+
 ```
 ==================================================
 Taux de change EUR/JPY - 2026-04-23 10:30:45
@@ -31,7 +39,38 @@ Taux de change EUR/JPY - 2026-04-23 10:30:45
 ==================================================
 ```
 
+## Output de l'historique
+
+```
+============================================================
+HISTORIQUE DU TAUX EUR/JPY
+============================================================
+
+2026-04-20:
+  Moyenne: 150.23 JPY
+  Min: 149.80 JPY | Max: 151.50 JPY
+  Observations: 2
+
+2026-04-21:
+  Moyenne: 152.45 JPY
+  Min: 152.10 JPY | Max: 152.80 JPY
+  Observations: 1
+
+============================================================
+STATISTIQUES GLOBALES
+============================================================
+Jours suivis: 2
+Taux moyen: 151.34 JPY
+Taux minimum: 149.80 JPY
+Taux maximum: 152.80 JPY
+
+Tendance: 📈 À la hausse
+Variation: +2.22 JPY (+1.48%)
+============================================================
+```
+
 ## Notes
 
-- L'API utilisée (exchangerate-api.com) est gratuite et ne nécessite pas de clé API
-- Les taux de change sont mis à jour quotidiennement
+- L'API utilisée est gratuite et ne nécessite pas de clé API
+- Les données sont sauvegardées automatiquement dans `exchange_rate_history.json`
+- Pour un suivi quotidien automatique, vous pouvez configurer une tâche cron ou un planificateur
