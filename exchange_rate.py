@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and track daily history
 """
 
 import requests
@@ -9,6 +9,7 @@ import json
 import os
 
 CACHE_FILE = 'exchange_rate_cache.json'
+HISTORY_FILE = 'exchange_rate_history.json'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -96,5 +97,63 @@ def load_cache():
     return None
 
 
+def save_to_history(rate):
+    """Save rate to daily history file"""
+    try:
+        history = {}
+        if os.path.exists(HISTORY_FILE):
+            with open(HISTORY_FILE, 'r') as f:
+                history = json.load(f)
+
+        today = datetime.now().strftime('%Y-%m-%d')
+        history[today] = {
+            'rate': rate,
+            'timestamp': datetime.now().isoformat()
+        }
+
+        with open(HISTORY_FILE, 'w') as f:
+            json.dump(history, f, indent=2)
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde de l'historique: {e}")
+
+
+def show_history(days=7):
+    """Display exchange rate history"""
+    try:
+        if not os.path.exists(HISTORY_FILE):
+            print("Aucun historique disponible.")
+            return
+
+        with open(HISTORY_FILE, 'r') as f:
+            history = json.load(f)
+
+        if not history:
+            print("Aucun historique disponible.")
+            return
+
+        # Sort and limit to last N days
+        sorted_dates = sorted(history.keys(), reverse=True)[:days]
+
+        print(f"\n{'='*50}")
+        print(f"Historique EUR/JPY (derniers {days} jours)")
+        print(f"{'='*50}")
+
+        for date in reversed(sorted_dates):
+            rate = history[date]['rate']
+            print(f"{date}: 1 EUR = {rate:.2f} JPY")
+
+        print(f"{'='*50}\n")
+    except Exception as e:
+        print(f"Erreur lors de la lecture de l'historique: {e}")
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == '--history':
+        days = int(sys.argv[2]) if len(sys.argv) > 2 else 7
+        show_history(days)
+    else:
+        rate = get_eur_jpy_rate()
+        if rate:
+            save_to_history(rate)
