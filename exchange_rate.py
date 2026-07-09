@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and track history
 """
 
 import requests
 from datetime import datetime
 import json
 import os
+import csv
 
 CACHE_FILE = 'exchange_rate_cache.json'
+HISTORY_FILE = 'exchange_rate_history.csv'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -35,6 +37,7 @@ def get_eur_jpy_rate(use_cache=True):
 
                     if rate:
                         save_cache(rate)
+                        save_history(rate)
                         display_rate(rate)
                         return rate
             except Exception:
@@ -48,6 +51,7 @@ def get_eur_jpy_rate(use_cache=True):
                 print("⚠️  Données en cache (connexion API échouée)")
                 print(f"{'='*50}")
                 display_rate(cached_rate)
+                save_history(cached_rate)
                 return cached_rate
 
         # Last resort: use fallback
@@ -55,6 +59,7 @@ def get_eur_jpy_rate(use_cache=True):
         print("⚠️  Taux de change approximatif (valeur par défaut)")
         print(f"{'='*50}")
         display_rate(FALLBACK_RATE)
+        save_history(FALLBACK_RATE)
         return FALLBACK_RATE
 
     except Exception as e:
@@ -69,6 +74,21 @@ def display_rate(rate):
     print(f"{'='*50}")
     print(f"1 EUR = {rate:.2f} JPY")
     print(f"{'='*50}\n")
+
+
+def save_history(rate):
+    """Save rate to history file (daily tracking)"""
+    try:
+        date_only = datetime.now().strftime('%Y-%m-%d')
+        file_exists = os.path.exists(HISTORY_FILE)
+
+        with open(HISTORY_FILE, 'a', newline='') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['Date', 'Rate (JPY per EUR)'])
+            writer.writerow([date_only, f'{rate:.2f}'])
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde de l'historique: {e}")
 
 
 def save_cache(rate):
