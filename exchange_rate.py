@@ -7,9 +7,11 @@ import requests
 from datetime import datetime
 import json
 import os
+import csv
 
 CACHE_FILE = 'exchange_rate_cache.json'
 FALLBACK_RATE = 152.45  # Default fallback rate
+LOG_FILE = 'exchange_rate_history.csv'
 
 
 def get_eur_jpy_rate(use_cache=True):
@@ -71,6 +73,21 @@ def display_rate(rate):
     print(f"{'='*50}\n")
 
 
+def log_rate(rate):
+    """Log rate to CSV file for historical tracking"""
+    try:
+        date = datetime.now().strftime('%Y-%m-%d')
+        file_exists = os.path.exists(LOG_FILE)
+
+        with open(LOG_FILE, 'a', newline='') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['Date', 'Rate (JPY per EUR)', 'Timestamp'])
+            writer.writerow([date, f"{rate:.2f}", datetime.now().isoformat()])
+    except Exception as e:
+        print(f"Erreur lors de l'enregistrement: {e}")
+
+
 def save_cache(rate):
     """Save rate to cache file"""
     try:
@@ -97,4 +114,6 @@ def load_cache():
 
 
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    rate = get_eur_jpy_rate()
+    if rate:
+        log_rate(rate)
