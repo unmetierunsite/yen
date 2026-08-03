@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display and track EUR/JPY exchange rate daily
 """
 
 import requests
 from datetime import datetime
 import json
 import os
+import csv
 
 CACHE_FILE = 'exchange_rate_cache.json'
+RATES_CSV = 'exchange_rates_history.csv'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -96,5 +98,74 @@ def load_cache():
     return None
 
 
+def log_rate_to_csv(rate):
+    """Log the exchange rate to a CSV file for historical tracking"""
+    try:
+        timestamp = datetime.now().isoformat()
+        date = datetime.now().strftime('%Y-%m-%d')
+
+        file_exists = os.path.exists(RATES_CSV)
+
+        with open(RATES_CSV, 'a', newline='') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['Date', 'Timestamp', 'EUR_to_JPY_Rate'])
+            writer.writerow([date, timestamp, f'{rate:.2f}'])
+    except Exception:
+        pass
+
+
+def get_recent_rates(days=7):
+    """Get the recent rates from CSV file"""
+    try:
+        if not os.path.exists(RATES_CSV):
+            return []
+
+        rates = []
+        with open(RATES_CSV, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                rates.append(row)
+
+        return rates[-days:] if rates else []
+    except Exception:
+        return []
+
+
+def display_summary():
+    """Display recent exchange rates summary"""
+    rates = get_recent_rates(7)
+
+    if not rates:
+        return
+
+    print(f"\n{'='*50}")
+    print("📊 Derniers taux de change (7 derniers jours)")
+    print(f"{'='*50}")
+
+    values = [float(r['EUR_to_JPY_Rate']) for r in rates]
+
+    for rate in rates:
+        print(f"{rate['Date']} : {rate['EUR_to_JPY_Rate']} JPY/EUR")
+
+    if len(values) > 1:
+        min_rate = min(values)
+        max_rate = max(values)
+        avg_rate = sum(values) / len(values)
+        change = values[-1] - values[0]
+
+        print(f"\n{'─'*50}")
+        print(f"Min:     {min_rate:.2f} JPY")
+        print(f"Max:     {max_rate:.2f} JPY")
+        print(f"Moyenne: {avg_rate:.2f} JPY")
+        print(f"Évolution: {change:+.2f} JPY")
+        print(f"{'='*50}\n")
+    else:
+        print(f"{'='*50}\n")
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    rate = get_eur_jpy_rate()
+    if rate:
+        log_rate_to_csv(rate)
+        display_summary()
