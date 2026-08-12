@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display and track daily EUR/JPY exchange rate
 """
 
 import requests
@@ -9,6 +9,7 @@ import json
 import os
 
 CACHE_FILE = 'exchange_rate_cache.json'
+HISTORY_FILE = 'exchange_rate_history.json'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -35,6 +36,7 @@ def get_eur_jpy_rate(use_cache=True):
 
                     if rate:
                         save_cache(rate)
+                        save_to_history(rate)
                         display_rate(rate)
                         return rate
             except Exception:
@@ -48,6 +50,7 @@ def get_eur_jpy_rate(use_cache=True):
                 print("⚠️  Données en cache (connexion API échouée)")
                 print(f"{'='*50}")
                 display_rate(cached_rate)
+                save_to_history(cached_rate)
                 return cached_rate
 
         # Last resort: use fallback
@@ -55,6 +58,7 @@ def get_eur_jpy_rate(use_cache=True):
         print("⚠️  Taux de change approximatif (valeur par défaut)")
         print(f"{'='*50}")
         display_rate(FALLBACK_RATE)
+        save_to_history(FALLBACK_RATE)
         return FALLBACK_RATE
 
     except Exception as e:
@@ -94,6 +98,30 @@ def load_cache():
     except Exception:
         pass
     return None
+
+
+def save_to_history(rate):
+    """Save rate to daily history file"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+
+        history = {}
+        if os.path.exists(HISTORY_FILE):
+            try:
+                with open(HISTORY_FILE, 'r') as f:
+                    history = json.load(f)
+            except Exception:
+                history = {}
+
+        history[today] = {
+            'rate': rate,
+            'timestamp': datetime.now().isoformat()
+        }
+
+        with open(HISTORY_FILE, 'w') as f:
+            json.dump(history, f, indent=2)
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
