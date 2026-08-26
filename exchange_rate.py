@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and track daily values
 """
 
 import requests
 from datetime import datetime
 import json
 import os
+import csv
 
 CACHE_FILE = 'exchange_rate_cache.json'
+HISTORY_FILE = 'exchange_rate_history.csv'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -96,5 +98,51 @@ def load_cache():
     return None
 
 
+def save_to_history(rate):
+    """Save daily rate to history CSV file"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        file_exists = os.path.exists(HISTORY_FILE)
+
+        with open(HISTORY_FILE, 'a', newline='') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['Date', 'Rate (JPY per EUR)'])
+            writer.writerow([today, f'{rate:.2f}'])
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde de l'historique: {e}")
+
+
+def get_statistics():
+    """Display statistics from historical data"""
+    try:
+        if not os.path.exists(HISTORY_FILE):
+            return
+
+        rates = []
+        with open(HISTORY_FILE, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                try:
+                    rates.append(float(row['Rate (JPY per EUR)']))
+                except (ValueError, KeyError):
+                    continue
+
+        if rates:
+            print(f"{'='*50}")
+            print("Statistiques historiques")
+            print(f"{'='*50}")
+            print(f"Nombre de jours suivis: {len(rates)}")
+            print(f"Taux minimum: {min(rates):.2f} JPY")
+            print(f"Taux maximum: {max(rates):.2f} JPY")
+            print(f"Taux moyen: {sum(rates)/len(rates):.2f} JPY")
+            print(f"{'='*50}\n")
+    except Exception as e:
+        print(f"Erreur lors de la lecture de l'historique: {e}")
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    rate = get_eur_jpy_rate()
+    if rate:
+        save_to_history(rate)
+        get_statistics()
