@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and log daily rates
 """
 
 import requests
@@ -9,6 +9,7 @@ import json
 import os
 
 CACHE_FILE = 'exchange_rate_cache.json'
+RATES_LOG_FILE = 'exchange_rate_history.json'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -96,5 +97,51 @@ def load_cache():
     return None
 
 
+def save_to_daily_log(rate):
+    """Save rate to daily history log"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        history = {}
+
+        if os.path.exists(RATES_LOG_FILE):
+            with open(RATES_LOG_FILE, 'r') as f:
+                history = json.load(f)
+
+        if today not in history:
+            history[today] = {
+                'rate': rate,
+                'timestamp': datetime.now().isoformat()
+            }
+
+            with open(RATES_LOG_FILE, 'w') as f:
+                json.dump(history, f, indent=2)
+    except Exception as e:
+        print(f"Erreur lors de l'enregistrement de l'historique: {e}")
+
+
+def display_history_summary():
+    """Display summary of recent rates"""
+    try:
+        if os.path.exists(RATES_LOG_FILE):
+            with open(RATES_LOG_FILE, 'r') as f:
+                history = json.load(f)
+
+            if history:
+                print(f"\n{'='*50}")
+                print("📊 Résumé des 7 derniers jours")
+                print(f"{'='*50}")
+
+                sorted_dates = sorted(history.keys(), reverse=True)[:7]
+                for date in reversed(sorted_dates):
+                    rate = history[date]['rate']
+                    print(f"{date}: 1 EUR = {rate:.2f} JPY")
+                print(f"{'='*50}\n")
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    rate = get_eur_jpy_rate()
+    if rate:
+        save_to_daily_log(rate)
+    display_history_summary()
