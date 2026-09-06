@@ -1,6 +1,6 @@
 # EUR/JPY Exchange Rate Tracker
 
-Un script simple qui affiche le taux de change actuel entre l'Euro et le Yen Japonais.
+Un script qui affiche le taux de change actuel entre l'Euro et le Yen Japonais et enregistre l'historique quotidien.
 
 ## Installation
 
@@ -11,9 +11,16 @@ pip install -r requirements.txt
 
 ## Utilisation
 
-Exécutez le script :
+### Obtenir le taux du jour
+Exécutez le script principal :
 ```bash
 python exchange_rate.py
+```
+
+### Voir l'historique complet
+Affichez l'historique des taux enregistrés :
+```bash
+python display_history.py
 ```
 
 ## Output
@@ -31,7 +38,20 @@ Taux de change EUR/JPY - 2026-04-23 10:30:45
 ==================================================
 ```
 
+### Historique
+
+Le script `display_history.py` affiche :
+- Tous les taux enregistrés par date
+- Le taux minimum, maximum et moyen
+- Le taux actuel
+
+## Fichiers générés
+
+- `exchange_rate_cache.json` : Cache du dernier taux récupéré
+- `exchange_rate_daily.json` : Historique quotidien des taux
+
 ## Notes
 
 - L'API utilisée (exchangerate-api.com) est gratuite et ne nécessite pas de clé API
-- Les taux de change sont mis à jour quotidiennement
+- Les taux de change sont enregistrés quotidiennement lors de l'exécution du script
+- En cas d'indisponibilité de l'API, le script utilise le cache ou une valeur par défaut

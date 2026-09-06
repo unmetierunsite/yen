@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and log daily rates
 """
 
 import requests
@@ -9,6 +9,7 @@ import json
 import os
 
 CACHE_FILE = 'exchange_rate_cache.json'
+DAILY_LOG_FILE = 'exchange_rate_daily.json'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -96,5 +97,39 @@ def load_cache():
     return None
 
 
+def log_daily_rate(rate):
+    """Log the exchange rate with today's date"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        daily_log = {}
+
+        if os.path.exists(DAILY_LOG_FILE):
+            with open(DAILY_LOG_FILE, 'r') as f:
+                daily_log = json.load(f)
+
+        daily_log[today] = {
+            'rate': rate,
+            'timestamp': datetime.now().isoformat()
+        }
+
+        with open(DAILY_LOG_FILE, 'w') as f:
+            json.dump(daily_log, f, indent=2)
+    except Exception:
+        pass
+
+
+def get_daily_history():
+    """Load the daily exchange rate history"""
+    try:
+        if os.path.exists(DAILY_LOG_FILE):
+            with open(DAILY_LOG_FILE, 'r') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    rate = get_eur_jpy_rate()
+    if rate:
+        log_daily_rate(rate)
