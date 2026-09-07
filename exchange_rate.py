@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and track daily history
 """
 
 import requests
 from datetime import datetime
 import json
 import os
+import csv
 
 CACHE_FILE = 'exchange_rate_cache.json'
-FALLBACK_RATE = 152.45  # Default fallback rate
+HISTORY_FILE = 'exchange_rate_history.csv'
+FALLBACK_RATE = 152.45
 
 
 def get_eur_jpy_rate(use_cache=True):
     """Fetch current EUR/JPY exchange rate from an API"""
     try:
-        # Try multiple APIs for redundancy
         apis = [
             'https://api.exchangerate-api.com/v4/latest/EUR',
             'https://open.er-api.com/v6/latest/EUR',
@@ -29,18 +30,16 @@ def get_eur_jpy_rate(use_cache=True):
 
                 if response.status_code == 200:
                     if 'rates' in data:
-                        rate = data['rates']['JPY']
-                    elif 'rates' in data and 'JPY' in data['rates']:
-                        rate = data['rates']['JPY']
+                        rate = data['rates'].get('JPY')
 
                     if rate:
                         save_cache(rate)
+                        log_daily_rate(rate)
                         display_rate(rate)
                         return rate
             except Exception:
                 continue
 
-        # If API fails, try cache
         if use_cache:
             cached_rate = load_cache()
             if cached_rate:
@@ -48,13 +47,14 @@ def get_eur_jpy_rate(use_cache=True):
                 print("⚠️  Données en cache (connexion API échouée)")
                 print(f"{'='*50}")
                 display_rate(cached_rate)
+                log_daily_rate(cached_rate)
                 return cached_rate
 
-        # Last resort: use fallback
         print(f"\n{'='*50}")
         print("⚠️  Taux de change approximatif (valeur par défaut)")
         print(f"{'='*50}")
         display_rate(FALLBACK_RATE)
+        log_daily_rate(FALLBACK_RATE)
         return FALLBACK_RATE
 
     except Exception as e:
@@ -69,6 +69,24 @@ def display_rate(rate):
     print(f"{'='*50}")
     print(f"1 EUR = {rate:.2f} JPY")
     print(f"{'='*50}\n")
+
+
+def log_daily_rate(rate):
+    """Log the exchange rate to daily history"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        timestamp = datetime.now().isoformat()
+
+        file_exists = os.path.exists(HISTORY_FILE)
+
+        with open(HISTORY_FILE, 'a', newline='') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['date', 'time', 'rate'])
+
+            writer.writerow([today, timestamp, f"{rate:.2f}"])
+    except Exception:
+        pass
 
 
 def save_cache(rate):
@@ -96,5 +114,45 @@ def load_cache():
     return None
 
 
+def show_history(days=7):
+    """Display exchange rate history"""
+    try:
+        if not os.path.exists(HISTORY_FILE):
+            print("Aucun historique disponible")
+            return
+
+        rates_by_date = {}
+        with open(HISTORY_FILE, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                date = row['date']
+                rate = float(row['rate'])
+                if date not in rates_by_date:
+                    rates_by_date[date] = []
+                rates_by_date[date].append(rate)
+
+        print(f"\n{'='*50}")
+        print(f"Historique des taux (derniers {days} jours)")
+        print(f"{'='*50}")
+
+        sorted_dates = sorted(rates_by_date.keys(), reverse=True)[:days]
+        for date in sorted(sorted_dates):
+            rates = rates_by_date[date]
+            avg_rate = sum(rates) / len(rates)
+            min_rate = min(rates)
+            max_rate = max(rates)
+            print(f"{date}: {avg_rate:.2f} JPY (min: {min_rate:.2f}, max: {max_rate:.2f})")
+
+        print(f"{'='*50}\n")
+    except Exception as e:
+        print(f"Erreur lors de la lecture de l'historique: {e}")
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == '--history':
+        days = int(sys.argv[2]) if len(sys.argv) > 2 else 7
+        show_history(days)
+    else:
+        get_eur_jpy_rate()
