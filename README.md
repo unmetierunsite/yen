@@ -21,6 +21,7 @@ python exchange_rate.py
 Le script affiche :
 - La date et l'heure actuelles
 - Le taux de change EUR/JPY (combien de yen vous obtenez pour 1 euro)
+- Les statistiques des 7 derniers jours (min, max, moyenne)
 
 Exemple :
 ```
@@ -29,7 +30,21 @@ Taux de change EUR/JPY - 2026-04-23 10:30:45
 ==================================================
 1 EUR = 152.45 JPY
 ==================================================
+
+==================================================
+📊 Statistiques des 7 derniers jours
+==================================================
+Min: 150.25 JPY
+Max: 155.30 JPY
+Moyenne: 152.45 JPY
+Enregistrements: 7
+==================================================
 ```
+
+## Fichiers générés
+
+- `exchange_rate_cache.json` : Cache du dernier taux obtenu
+- `exchange_rate_daily.csv` : Historique quotidien des taux de change
 
 ## Notes
 
