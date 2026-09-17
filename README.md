@@ -31,7 +31,23 @@ Taux de change EUR/JPY - 2026-04-23 10:30:45
 ==================================================
 ```
 
+## Historique
+
+Le script enregistre automatiquement chaque taux de change dans le fichier `exchange_rate_history.csv` pour suivre l'évolution quotidienne des taux. Le fichier contient :
+- Date
+- Heure
+- Taux de change (JPY par EUR)
+
+Exemple de fichier historique :
+```
+Date,Time,Rate (JPY per EUR)
+2026-09-17,05:03:59,152.45
+2026-09-17,05:04:04,152.45
+```
+
 ## Notes
 
 - L'API utilisée (exchangerate-api.com) est gratuite et ne nécessite pas de clé API
 - Les taux de change sont mis à jour quotidiennement
+- Un historique complet est maintenu dans `exchange_rate_history.csv`
+- En cas d'indisponibilité de l'API, le script utilise un cache ou une valeur par défaut
