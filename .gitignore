@@ -1,0 +1,4 @@
+exchange_rate_cache.json
+__pycache__/
+*.pyc
+.DS_Store

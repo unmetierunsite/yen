@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and track daily rates
 """
 
 import requests
 from datetime import datetime
 import json
 import os
+import csv
 
 CACHE_FILE = 'exchange_rate_cache.json'
+HISTORY_FILE = 'exchange_rate_history.csv'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -71,6 +73,43 @@ def display_rate(rate):
     print(f"{'='*50}\n")
 
 
+def log_rate_to_history(rate):
+    """Log the exchange rate to history file"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        file_exists = os.path.exists(HISTORY_FILE)
+
+        with open(HISTORY_FILE, 'a', newline='') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['Date', 'Rate (JPY per EUR)'])
+            writer.writerow([today, f"{rate:.2f}"])
+    except Exception:
+        pass
+
+
+def show_recent_rates(days=7):
+    """Show recent exchange rates from history"""
+    try:
+        if not os.path.exists(HISTORY_FILE):
+            return
+
+        rates = []
+        with open(HISTORY_FILE, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                rates.append(row)
+
+        if rates:
+            print(f"📊 Historique EUR/JPY (derniers {min(len(rates), days)} jours):")
+            print(f"{'='*50}")
+            for row in rates[-days:]:
+                print(f"{row['Date']}: 1 EUR = {row['Rate (JPY per EUR)']} JPY")
+            print(f"{'='*50}\n")
+    except Exception:
+        pass
+
+
 def save_cache(rate):
     """Save rate to cache file"""
     try:
@@ -97,4 +136,7 @@ def load_cache():
 
 
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    rate = get_eur_jpy_rate()
+    if rate:
+        log_rate_to_history(rate)
+        show_recent_rates()
