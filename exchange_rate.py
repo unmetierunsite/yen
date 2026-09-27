@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and log daily rates
 """
 
 import requests
 from datetime import datetime
 import json
 import os
+import csv
 
 CACHE_FILE = 'exchange_rate_cache.json'
+LOG_FILE = 'exchange_rate_log.csv'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -69,6 +71,24 @@ def display_rate(rate):
     print(f"{'='*50}")
     print(f"1 EUR = {rate:.2f} JPY")
     print(f"{'='*50}\n")
+    log_rate(rate)
+
+
+def log_rate(rate):
+    """Log the exchange rate to CSV file"""
+    try:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        time_str = datetime.now().strftime('%H:%M:%S')
+
+        file_exists = os.path.exists(LOG_FILE)
+
+        with open(LOG_FILE, 'a', newline='') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['Date', 'Time', 'Rate (JPY per EUR)'])
+            writer.writerow([date_str, time_str, f'{rate:.2f}'])
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde du journal: {e}")
 
 
 def save_cache(rate):
@@ -96,5 +116,39 @@ def load_cache():
     return None
 
 
+def show_recent_history(days=7):
+    """Display recent exchange rates"""
+    try:
+        if not os.path.exists(LOG_FILE):
+            print("Aucun historique disponible")
+            return
+
+        with open(LOG_FILE, 'r') as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+
+        if len(rows) <= 1:
+            print("Aucun historique disponible")
+            return
+
+        print(f"\n{'='*50}")
+        print(f"Historique des 7 derniers jours (jusqu'à {days} entrées)")
+        print(f"{'='*50}")
+        print(f"{'Date':<12} {'Time':<10} {'Rate (JPY)':<12}")
+        print(f"{'-'*50}")
+
+        for row in rows[-days:]:
+            if row and row[0] != 'Date':
+                print(f"{row[0]:<12} {row[1]:<10} {row[2]:<12}")
+        print(f"{'='*50}\n")
+    except Exception as e:
+        print(f"Erreur lors de la lecture de l'historique: {e}")
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == '--history':
+        show_recent_history()
+    else:
+        get_eur_jpy_rate()
