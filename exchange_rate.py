@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display and log current EUR/JPY exchange rate
 """
 
 import requests
@@ -9,6 +9,7 @@ import json
 import os
 
 CACHE_FILE = 'exchange_rate_cache.json'
+LOG_FILE = 'exchange_rate_log.csv'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -35,7 +36,8 @@ def get_eur_jpy_rate(use_cache=True):
 
                     if rate:
                         save_cache(rate)
-                        display_rate(rate)
+                        display_rate(rate, source="API")
+                        log_rate(rate, source="API")
                         return rate
             except Exception:
                 continue
@@ -47,14 +49,16 @@ def get_eur_jpy_rate(use_cache=True):
                 print(f"\n{'='*50}")
                 print("⚠️  Données en cache (connexion API échouée)")
                 print(f"{'='*50}")
-                display_rate(cached_rate)
+                display_rate(cached_rate, source="Cache")
+                log_rate(cached_rate, source="Cache")
                 return cached_rate
 
         # Last resort: use fallback
         print(f"\n{'='*50}")
         print("⚠️  Taux de change approximatif (valeur par défaut)")
         print(f"{'='*50}")
-        display_rate(FALLBACK_RATE)
+        display_rate(FALLBACK_RATE, source="Fallback")
+        log_rate(FALLBACK_RATE, source="Fallback")
         return FALLBACK_RATE
 
     except Exception as e:
@@ -62,12 +66,13 @@ def get_eur_jpy_rate(use_cache=True):
         return None
 
 
-def display_rate(rate):
+def display_rate(rate, source="Unknown"):
     """Display the exchange rate"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print(f"Taux de change EUR/JPY - {timestamp}")
     print(f"{'='*50}")
     print(f"1 EUR = {rate:.2f} JPY")
+    print(f"Source: {source}")
     print(f"{'='*50}\n")
 
 
@@ -94,6 +99,24 @@ def load_cache():
     except Exception:
         pass
     return None
+
+
+def log_rate(rate, source="Unknown"):
+    """Log the rate to CSV file for daily tracking"""
+    try:
+        timestamp = datetime.now().isoformat()
+        date = datetime.now().strftime('%Y-%m-%d')
+
+        # Create header if file doesn't exist
+        if not os.path.exists(LOG_FILE):
+            with open(LOG_FILE, 'w') as f:
+                f.write('Date,Time,Rate,Source\n')
+
+        # Append the rate
+        with open(LOG_FILE, 'a') as f:
+            f.write(f'{date},{timestamp},{rate:.2f},{source}\n')
+    except Exception as e:
+        print(f"Erreur lors de l'enregistrement du log: {e}")
 
 
 if __name__ == "__main__":
