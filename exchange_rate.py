@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to track daily EUR/JPY exchange rate
 """
 
 import requests
 from datetime import datetime
 import json
 import os
+import csv
 
 CACHE_FILE = 'exchange_rate_cache.json'
-FALLBACK_RATE = 152.45  # Default fallback rate
+LOG_FILE = 'exchange_rate_history.csv'
+FALLBACK_RATE = 152.45
 
 
 def get_eur_jpy_rate(use_cache=True):
     """Fetch current EUR/JPY exchange rate from an API"""
     try:
-        # Try multiple APIs for redundancy
         apis = [
             'https://api.exchangerate-api.com/v4/latest/EUR',
             'https://open.er-api.com/v6/latest/EUR',
@@ -35,12 +36,12 @@ def get_eur_jpy_rate(use_cache=True):
 
                     if rate:
                         save_cache(rate)
+                        log_daily_rate(rate)
                         display_rate(rate)
                         return rate
             except Exception:
                 continue
 
-        # If API fails, try cache
         if use_cache:
             cached_rate = load_cache()
             if cached_rate:
@@ -48,13 +49,14 @@ def get_eur_jpy_rate(use_cache=True):
                 print("⚠️  Données en cache (connexion API échouée)")
                 print(f"{'='*50}")
                 display_rate(cached_rate)
+                log_daily_rate(cached_rate)
                 return cached_rate
 
-        # Last resort: use fallback
         print(f"\n{'='*50}")
         print("⚠️  Taux de change approximatif (valeur par défaut)")
         print(f"{'='*50}")
         display_rate(FALLBACK_RATE)
+        log_daily_rate(FALLBACK_RATE)
         return FALLBACK_RATE
 
     except Exception as e:
@@ -69,6 +71,24 @@ def display_rate(rate):
     print(f"{'='*50}")
     print(f"1 EUR = {rate:.2f} JPY")
     print(f"{'='*50}\n")
+
+
+def log_daily_rate(rate):
+    """Log the rate to CSV file with daily entries"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        file_exists = os.path.exists(LOG_FILE)
+
+        with open(LOG_FILE, 'a', newline='') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['Date', 'Timestamp', 'Rate_JPY'])
+
+            writer.writerow([today, timestamp, f"{rate:.2f}"])
+    except Exception as e:
+        print(f"Erreur lors de l'enregistrement: {e}")
 
 
 def save_cache(rate):
