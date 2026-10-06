@@ -7,8 +7,10 @@ import requests
 from datetime import datetime
 import json
 import os
+import csv
 
 CACHE_FILE = 'exchange_rate_cache.json'
+HISTORY_FILE = 'exchange_rate_history.csv'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -69,6 +71,7 @@ def display_rate(rate):
     print(f"{'='*50}")
     print(f"1 EUR = {rate:.2f} JPY")
     print(f"{'='*50}\n")
+    save_to_history(rate)
 
 
 def save_cache(rate):
@@ -94,6 +97,22 @@ def load_cache():
     except Exception:
         pass
     return None
+
+
+def save_to_history(rate):
+    """Save exchange rate to history CSV file"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        timestamp = datetime.now().isoformat()
+
+        file_exists = os.path.exists(HISTORY_FILE)
+        with open(HISTORY_FILE, 'a', newline='') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['date', 'timestamp', 'eur_to_jpy'])
+            writer.writerow([today, timestamp, rate])
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
