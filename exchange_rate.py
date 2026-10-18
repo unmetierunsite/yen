@@ -9,6 +9,7 @@ import json
 import os
 
 CACHE_FILE = 'exchange_rate_cache.json'
+LOG_FILE = 'exchange_rate_log.csv'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -96,5 +97,23 @@ def load_cache():
     return None
 
 
+def log_rate(rate):
+    """Log rate to CSV file for daily tracking"""
+    try:
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        is_new_file = not os.path.exists(LOG_FILE)
+
+        with open(LOG_FILE, 'a') as f:
+            if is_new_file:
+                f.write('Date,Time,Rate_JPY\n')
+
+            date, time = timestamp.split(' ')
+            f.write(f'{date},{time},{rate:.2f}\n')
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    rate = get_eur_jpy_rate()
+    if rate:
+        log_rate(rate)
