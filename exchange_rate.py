@@ -3,10 +3,11 @@
 Script to display current EUR/JPY exchange rate
 """
 
-import requests
 from datetime import datetime
 import json
 import os
+import urllib.request
+import urllib.error
 
 CACHE_FILE = 'exchange_rate_cache.json'
 FALLBACK_RATE = 152.45  # Default fallback rate
@@ -24,20 +25,17 @@ def get_eur_jpy_rate(use_cache=True):
         rate = None
         for api_url in apis:
             try:
-                response = requests.get(api_url, timeout=5)
-                data = response.json()
+                response = urllib.request.urlopen(api_url, timeout=5)
+                data = json.loads(response.read().decode('utf-8'))
 
-                if response.status_code == 200:
-                    if 'rates' in data:
-                        rate = data['rates']['JPY']
-                    elif 'rates' in data and 'JPY' in data['rates']:
-                        rate = data['rates']['JPY']
+                if 'rates' in data and 'JPY' in data['rates']:
+                    rate = data['rates']['JPY']
 
                     if rate:
                         save_cache(rate)
                         display_rate(rate)
                         return rate
-            except Exception:
+            except (urllib.error.URLError, urllib.error.HTTPError, Exception):
                 continue
 
         # If API fails, try cache
