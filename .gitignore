@@ -1,0 +1,13 @@
+# Cache and data files
+exchange_rate_cache.json
+exchange_rate_history.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv

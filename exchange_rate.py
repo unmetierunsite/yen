@@ -3,12 +3,14 @@
 Script to display current EUR/JPY exchange rate
 """
 
-import requests
+import urllib.request
+import urllib.error
 from datetime import datetime
 import json
 import os
 
 CACHE_FILE = 'exchange_rate_cache.json'
+HISTORY_FILE = 'exchange_rate_history.json'
 FALLBACK_RATE = 152.45  # Default fallback rate
 
 
@@ -24,19 +26,16 @@ def get_eur_jpy_rate(use_cache=True):
         rate = None
         for api_url in apis:
             try:
-                response = requests.get(api_url, timeout=5)
-                data = response.json()
+                with urllib.request.urlopen(api_url, timeout=5) as response:
+                    data = json.loads(response.read().decode('utf-8'))
 
-                if response.status_code == 200:
-                    if 'rates' in data:
+                    if 'rates' in data and 'JPY' in data['rates']:
                         rate = data['rates']['JPY']
-                    elif 'rates' in data and 'JPY' in data['rates']:
-                        rate = data['rates']['JPY']
-
-                    if rate:
                         save_cache(rate)
                         display_rate(rate)
                         return rate
+            except (urllib.error.URLError, urllib.error.HTTPError):
+                continue
             except Exception:
                 continue
 
@@ -96,5 +95,27 @@ def load_cache():
     return None
 
 
+def log_to_history(rate):
+    """Log rate to historical data file"""
+    try:
+        history = []
+        if os.path.exists(HISTORY_FILE):
+            with open(HISTORY_FILE, 'r') as f:
+                history = json.load(f)
+
+        entry = {
+            'timestamp': datetime.now().isoformat(),
+            'rate': rate
+        }
+        history.append(entry)
+
+        with open(HISTORY_FILE, 'w') as f:
+            json.dump(history, f, indent=2)
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde de l'historique: {e}")
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    rate = get_eur_jpy_rate()
+    if rate:
+        log_to_history(rate)
