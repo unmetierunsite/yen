@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to track daily EUR/JPY exchange rate
 """
 
 import requests
@@ -9,7 +9,8 @@ import json
 import os
 
 CACHE_FILE = 'exchange_rate_cache.json'
-FALLBACK_RATE = 152.45  # Default fallback rate
+TRACKING_FILE = 'exchange_rate_history.json'
+FALLBACK_RATE = 152.45
 
 
 def get_eur_jpy_rate(use_cache=True):
@@ -96,5 +97,67 @@ def load_cache():
     return None
 
 
+def track_daily_rate():
+    """Fetch and store the daily exchange rate"""
+    rate = get_eur_jpy_rate()
+
+    if rate:
+        today = datetime.now().strftime('%Y-%m-%d')
+
+        history = {}
+        if os.path.exists(TRACKING_FILE):
+            try:
+                with open(TRACKING_FILE, 'r') as f:
+                    history = json.load(f)
+            except Exception:
+                pass
+
+        history[today] = {
+            'rate': rate,
+            'timestamp': datetime.now().isoformat()
+        }
+
+        try:
+            with open(TRACKING_FILE, 'w') as f:
+                json.dump(history, f, indent=2)
+            print(f"✓ Taux enregistré pour {today}")
+        except Exception as e:
+            print(f"Erreur lors de l'enregistrement: {e}")
+
+        return rate
+    return None
+
+
+def display_history():
+    """Display exchange rate history"""
+    if not os.path.exists(TRACKING_FILE):
+        print("Aucun historique disponible")
+        return
+
+    try:
+        with open(TRACKING_FILE, 'r') as f:
+            history = json.load(f)
+
+        print(f"\n{'='*50}")
+        print("Historique EUR/JPY")
+        print(f"{'='*50}")
+
+        for date in sorted(history.keys()):
+            rate = history[date]['rate']
+            print(f"{date}: 1 EUR = {rate:.2f} JPY")
+
+        if history:
+            rates = [h['rate'] for h in history.values()]
+            print(f"{'='*50}")
+            print(f"Min: {min(rates):.2f} JPY | Max: {max(rates):.2f} JPY | Moy: {sum(rates)/len(rates):.2f} JPY")
+            print(f"{'='*50}\n")
+    except Exception as e:
+        print(f"Erreur lors de la lecture de l'historique: {e}")
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == '--history':
+        display_history()
+    else:
+        track_daily_rate()
