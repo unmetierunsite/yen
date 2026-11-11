@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-Script to display current EUR/JPY exchange rate
+Script to display current EUR/JPY exchange rate and log daily rates
 """
 
 import requests
 from datetime import datetime
 import json
 import os
+import csv
 
 CACHE_FILE = 'exchange_rate_cache.json'
 FALLBACK_RATE = 152.45  # Default fallback rate
+RATES_LOG = 'exchange_rates.csv'
 
 
 def get_eur_jpy_rate(use_cache=True):
@@ -96,5 +98,23 @@ def load_cache():
     return None
 
 
+def log_rate(rate):
+    """Log the exchange rate to CSV file"""
+    try:
+        date = datetime.now().strftime('%Y-%m-%d')
+        timestamp = datetime.now().isoformat()
+
+        file_exists = os.path.exists(RATES_LOG)
+        with open(RATES_LOG, 'a', newline='') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['Date', 'Timestamp', 'EUR_to_JPY'])
+            writer.writerow([date, timestamp, f'{rate:.2f}'])
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde du taux: {e}")
+
+
 if __name__ == "__main__":
-    get_eur_jpy_rate()
+    rate = get_eur_jpy_rate()
+    if rate:
+        log_rate(rate)
